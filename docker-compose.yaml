@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:alpine
+    ports:
+      - "8000:80" #bind 8000 port of local machine to 80 port of container
+    depends_on:
+      - app
+      - db
+    volumes:
+      - ./:/var/www #binds src directory of local machine to var/www directory inside container #src bhitra ko content var/www ma lagera haldinxa 
+      - ./nginx/conf.d/:/etc/nginx/conf.d 
+
+  db:
+    image: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=blog
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_USER=laravel_user
+      - MYSQL_PASSWORD=laravel_password
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "3400:80"
+    depends_on:
+      - db
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+      - MYSQL_ROOT_PASSWORD=password
+
+  app:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: laravel_app
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=blog
+      - DB_USERNAME=laravel_user
+      - DB_PASSWORD=laravel_password
+    depends_on:
+      - db
+
