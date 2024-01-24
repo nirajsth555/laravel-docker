@@ -1,28 +1,46 @@
 # Use the official PHP image as the base image
-FROM php:8.1-fpm-alpine
+FROM php:8.2-fpm
 
-# Set the working directory to /var/www/html
-WORKDIR /var/www/html
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    locales \
+    zip \
+    jpegoptim optipng pngquant gifsicle \
+    unzip \
+    git \
+    curl \
+    lua-zlib-dev \
+    libmemcached-dev \
+    nginx
 
-# Install required PHP extensions
-RUN docker-php-ext-install pdo pdo_mysql sockets
+
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Install Composer
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 
+#ADD https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+# Install php extensions
+#RUN chmod +x /usr/local/bin/install-php-extensions && sync && \
+    #install-php-extensions mbstring pdo_mysql zip exif pcntl gd memcached bcmath
+
+# Install required PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql sockets
+
 # Copy only the composer files first for better caching
-COPY ./composer.json /var/www/html/
+COPY . /var/www/html/
+
+# SET current directory
+WORKDIR /var/www/html
 
 # Install dependencies using Composer
-RUN composer install --no-scripts --no-autoloader
-
-# Copy the rest of the application
-COPY . /var/www/html
-
-# Generate autoload files
-RUN composer dump-autoload --optimize
+RUN composer install
 
 # Set permissions for Laravel
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
